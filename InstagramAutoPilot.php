@@ -7,7 +7,7 @@ class InstagramAutoPilot {
         $instagram = new \Instagram\Instagram();
         $instagram->login($ACC_NAME, $ACC_PASS);
 
-        // so that the script cron job with not always start at the exact same time it's scheduled
+        // Задаем задержку после запуска скрипта.
         // sleep(rand(32, 50));
 
         if($GET_NEW_IMAGES == true) { $this->getNewImage($ACC_NAME, $instagram, $ACCOUNTS, $TAGS); } 
@@ -31,22 +31,22 @@ class InstagramAutoPilot {
         $userFeed = $instagram->getUserFeed($user, $userFeed->getNextMaxId()); // page 2
 
         foreach($userFeed->getItems() as $feedItem){
-            $idOfImage = $feedItem->getId(); //Feed Item ID
-            $images = $feedItem->getImageVersions2()->getCandidates(); //Grab a list of Images for this Post (different sizes)
-            $photoUrl = $images[0]->getUrl(); //Grab the URL of the first Photo in the list of Images for this Post
+            $idOfImage = $feedItem->getId(); //ID Ленты
+            $images = $feedItem->getImageVersions2()->getCandidates(); //Сохраняем список изображений
+            $photoUrl = $images[0]->getUrl(); //Сохраняем ссылку на первую фотографию
 
-            if($keepGoing) { // keep going until we find a photo not uploaded before
+            if($keepGoing) { // проверяем, не загружалось ли нами ранее
                 $filename = "repostedFrom/" . $randomAccount[0] . ".txt";
                 $keepGoing = $this->checkIfIdSeenBefore($filename, $idOfImage);
 
                 if($keepGoing == false) {
                     $photoLocationOnDisk = "imagesUploaded/" . $idOfImage . ".jpg";
                     
-                    copy($photoUrl, $photoLocationOnDisk); // copy image to local dir
+                    copy($photoUrl, $photoLocationOnDisk); // копируем фотографию в локальную папку
 
                     $caption = $feedItem->getCaption()->getText();
                     
-                    $instagram->postPhoto($photoLocationOnDisk, $caption); // upload photo
+                    $instagram->postPhoto($photoLocationOnDisk, $caption); // загружаем фото
 
                     $file = "";
                     if(!file_exists($filename)) { 
@@ -59,14 +59,14 @@ class InstagramAutoPilot {
                     fclose($file); 
 
 
-                    $this->writeToLogs("\n\Reposted another image. [" . date("Y-m-d h:i:sa", time()) . "]");
+                    $this->writeToLogs("\n\Выполнен репост. [" . date("Y-m-d h:i:sa", time()) . "]");
                 }
             }
         }
     }
 
     function comment($instagram, $accounts, $comment) {
-        $maxDelayTime = 15; // Set the max delay in seconds between api requests
+        $maxDelayTime = 15; // Максимальное время между API запросами
         $totalCommentsToMake = rand(9, 30);
         $keepGoing = true;
         $randomAccount = array($accounts[rand(0, (sizeof($accounts) - 1))]);
@@ -80,10 +80,10 @@ class InstagramAutoPilot {
             if(sizeof($userFeed->getItems()) > 0) {
                 foreach($userFeed->getItems() as $feedItem){
                     $idOfImage = $feedItem->getId(); //Feed Item ID
-                    $images = $feedItem->getImageVersions2()->getCandidates(); //Grab a list of Images for this Post (different sizes)
-                    $photoUrl = $images[0]->getUrl(); //Grab the URL of the first Photo in the list of Images for this Post
+                    $images = $feedItem->getImageVersions2()->getCandidates(); //Сохраняем список изображений
+                    $photoUrl = $images[0]->getUrl(); //Сохраняем ссылку на первую фотографию
 
-                    if($keepGoing) { // keep going until we find a user who's photo we've not commented on before
+                    if($keepGoing) { // если находим фотографию, то не комментируем ее
                         $filename = "comments.txt";
                         $keepGoing = $this->checkIfIdSeenBefore($filename, $follower->getUsername());
 
@@ -92,7 +92,7 @@ class InstagramAutoPilot {
                                 $instagram->commentOnMedia($idOfImage, $comment);
 
                                 // $photoLocationOnDisk = "imagesCommented/" . $idOfImage . ".jpg";
-                                // copy($photoUrl, $photoLocationOnDisk); // copy image to local dir
+                                // copy($photoUrl, $photoLocationOnDisk); // копируем фотографию в локальную папку
 
                                 $file = "";
                                 if(!file_exists($filename)) { 
@@ -110,7 +110,7 @@ class InstagramAutoPilot {
 
                                 $delayTime = rand(8, $maxDelayTime);
 
-                                $this->writeToLogs("\nCommented on " . $follower->getUsername() . ". Sleeping for " . $delayTime . " seconds. [" . date("Y-m-d h:i:sa", time()) . "]");
+                                $this->writeToLogs("\nПрокомментировали " . $follower->getUsername() . ". Засыпаю на " . $delayTime . " секунд-(ы). [" . date("Y-m-d h:i:sa", time()) . "]");
 
                                 sleep($delayTime);
                             }
@@ -122,8 +122,8 @@ class InstagramAutoPilot {
     }
 
     function followUsers($instagram, $accounts, $accountName) {
-        $maxDelayTime = 15; // Set the max delay in seconds between api requests (following or unfollowing)
-        $maxFollow = rand(40, 80); // Set the max amount of users to follow in one run of this script
+        $maxDelayTime = 15; // Максимальное время между API запросами
+        $maxFollow = rand(40, 80); // Максимальное количество пользователей для подписки
         $shouldFollow = rand(0, 1);
         $randomAccount = array($accounts[rand(0, 10)]);
         $user = $instagram->getUserByUsername($randomAccount[0]);
@@ -133,17 +133,17 @@ class InstagramAutoPilot {
         $alreadyfollowing = $instagram->getUserFollowing($myAccount);
 
         if($shouldFollow == 1) {
-            $this->writeToLogs("\n\nAbout To Follow New Users...");
+            $this->writeToLogs("\n\nИнформация о подписавшихся пользователях...");
 
             foreach($followers->getFollowers() as $toFollow) {
 
-                // if not already following user
+                // если не подписчик больше
                 if(!in_array($toFollow, $alreadyfollowing->getFollowers()) && $maxFollow > 0) {
                     $instagram->followUser($toFollow);
                     
                     $delayTime = rand(8, $maxDelayTime);
 
-                    $this->writeToLogs("\nFollowed " . $toFollow->getUsername() . " Sleeping for " . $delayTime . " seconds. [" . date("Y-m-d h:i:sa", time()) . "]");
+                    $this->writeToLogs("\nПодписался на " . $toFollow->getUsername() . " Засыпаю на " . $delayTime . " секунд-(ы). [" . date("Y-m-d h:i:sa", time()) . "]");
                     $maxFollow--;
 
                     sleep($delayTime);
@@ -153,13 +153,13 @@ class InstagramAutoPilot {
     }
 
     function unfollowUsers($instagram, $accountName) {
-        $maxDelayTime = 15; // Set the max delay in seconds between api requests (following or unfollowing)
-        $maxUnfollow = rand(20, 240); // Set the max amount of users to unfollow in one run of this script
+        $maxDelayTime = 15; // Максимальное время между API запросами
+        $maxUnfollow = rand(20, 240); // Максимальное количество пользователей для отписки
 
         $myAccount = $instagram->getUserByUsername($accountName);
         $alreadyfollowing = $instagram->getUserFollowing($myAccount);
 
-        $this->writeToLogs("\n\nAbout To Unfollow Users...");
+        $this->writeToLogs("\n\nИнформация об отписавшихся пользователях...");
 
         foreach($alreadyfollowing->getFollowers() as $toUnfollow) {
             if($maxUnfollow > 0) {
@@ -168,7 +168,7 @@ class InstagramAutoPilot {
                 
                 $delayTime = rand(8, $maxDelayTime);
 
-                $this->writeToLogs("\nUnfollowed " . $toUnfollow->getUsername() . " Sleeping for " . $delayTime . " seconds. [" . date("Y-m-d h:i:sa", time()) . "]");
+                $this->writeToLogs("\nОтписался от " . $toUnfollow->getUsername() . " Засыпаю на " . $delayTime . " секунд-(ы). [" . date("Y-m-d h:i:sa", time()) . "]");
                 
                 sleep($delayTime);
             }
@@ -196,7 +196,7 @@ class InstagramAutoPilot {
     }
 
     /**
-    * Checks txt file to see if an id is already there.. meaning it was seen before
+    * Проверяем txt файлы на их наличие
     **/
     function checkIfIdSeenBefore($filename, $id) {
         $file = @fopen($filename, "r");
@@ -204,7 +204,7 @@ class InstagramAutoPilot {
 
         if ($file) {
             while (($line = fgets($file)) !== false) {
-                $line = str_replace("\n", "", $line); // hidden newline char at end of line
+                $line = str_replace("\n", "", $line); // скрываемся
 
                 if(strcmp($id, $line) === 0) {
                     $idSeen = true;
@@ -214,7 +214,7 @@ class InstagramAutoPilot {
             fclose($file);
         } 
         else {
-            // error opening the file.
+            // ошибка открытия файла.
         } 
 
         return $idSeen;
