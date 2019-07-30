@@ -1,6 +1,19 @@
 <?php
 require("../../lib/vendor/autoload.php");
 
+$frases = array(
+'Cool!',
+'Nice!',
+'Amazing!',
+'Awesome!',
+'Gorgeous!',
+'So sweet!',
+'So funny!',
+'Fantastic!',
+'Wooow!');
+
+$rand_frases = array_rand($frases, 1);
+
 class InstagramAutoPilot {
 
     public function init($ACC_NAME, $ACC_PASS, $GET_NEW_IMAGES, $FOLLOW_USERS, $UNFOLLOW_USERS, $ACCOUNTS, $TAGS, $COMMENT) {
@@ -89,7 +102,7 @@ class InstagramAutoPilot {
 
                         if($keepGoing == false) {
                                 if($totalCommentsToMake > 0) {
-                                $instagram->commentOnMedia($idOfImage, $comment);
+                                $instagram->commentOnMedia($idOfImage, $frases[$rand_frases]);
 
                                 // $photoLocationOnDisk = "imagesCommented/" . $idOfImage . ".jpg";
                                 // copy($photoUrl, $photoLocationOnDisk); // копируем фотографию в локальную папку
